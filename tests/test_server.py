@@ -13,6 +13,9 @@ class ApiTests(unittest.TestCase):
     def test_home_and_assets(self):
         home = self.client.get('/')
         self.assertEqual(home.status_code, 200)
+        self.assertIn(b'From masks to a state graph.', home.data)
+        self.assertIn(b'OUR DEMO \xc2\xb7 not implemented', home.data)
+        self.assertIn(b'does not sample points', home.data)
         home.close()
         js = self.client.get('/static/app.js')
         self.assertEqual(js.status_code, 200)

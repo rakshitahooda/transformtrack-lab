@@ -30,6 +30,11 @@ Python 3.10+, Flask, OpenCV, NumPy, Pillow (for regenerating the included clip),
 
 The included original MP4 is a short visual tour of the synthetic sequence. It is not the source creator's video. Watch it at [media/transformtrack-demo.mp4](media/transformtrack-demo.mp4). Regenerate it by running `python tools/make_video.py` to render PNG frames, then `ffmpeg -framerate 24 -i /tmp/tt_frames/frame_%04d.png -t 8 -c:v libx264 -pix_fmt yuv420p media/transformtrack-demo.mp4`.
 
+## Research pipeline concept and this prototype
+The referenced TIPO work describes a broader tracking loop: per-object tracker masks; component extraction with point sampling and mask decoding; candidate assembly or disassembly state proposals; overlap-based scoring and selection; an MLLM judge for semantic validation and labels; then updates to a state graph and tracker. The diagram in the web demo is an original summary of that flow, not a reproduction of the paper figure.
+
+TransformTrack implements only a small synthetic analogy: it generates binary masks, extracts connected components with OpenCV, proposes split or merge events using an overlap threshold and reports mean pairwise IoU, then builds a finite synthetic state graph. It does not sample prompts, decode masks, run an MLLM, maintain a learned tracker, or implement the TIPO method. Its values are educational examples, not benchmark metrics or confidence estimates.
+
 ## Tests
 ```powershell
 py -m unittest discover -s tests -v
