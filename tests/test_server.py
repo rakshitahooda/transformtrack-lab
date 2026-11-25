@@ -42,12 +42,20 @@ class ApiTests(unittest.TestCase):
 
     def test_api_graph_and_explanation(self):
         d=self.client.get('/api/demo').get_json()
-        self.assertEqual(d['summary'],{'frames':8,'events':2,'splits':1,'merges':1})
-        self.assertEqual([e['kind'] for e in d['events']],['split','merge'])
-        self.assertTrue(all('iou' in link and 'from' in link and 'to' in link for e in d['events'] for link in e['evidence']))
-        self.assertEqual(len(d['graph']['nodes']),6)
-        self.assertEqual(len([e for e in d['graph']['edges'] if e['type']=='alternative']),2)
-        self.assertEqual(len(d['graph']['branches']),4)
-        self.assertTrue(all(o['mask_png'].startswith('data:image/png;base64,') for s in d['states'] for o in s['objects']))
+        cases={c['id']:c for c in d['scenarios']}
+        self.assertEqual(set(cases),{'mug','remote','usb'})
+        mug=cases['mug']
+        self.assertEqual(mug['summary'],{'frames':8,'events':2,'splits':1,'merges':1})
+        self.assertEqual([e['kind'] for e in mug['events']],['split','merge'])
+        self.assertTrue(all('iou' in link and 'from' in link and 'to' in link for e in mug['events'] for link in e['evidence']))
+        self.assertEqual(len(mug['graph']['nodes']),6)
+        self.assertEqual(len([e for e in mug['graph']['edges'] if e['type']=='alternative']),2)
+        self.assertEqual(len(mug['graph']['branches']),4)
+        self.assertEqual(cases['remote']['states'][2]['objects'][2]['label'],'AAA battery A')
+        self.assertEqual(cases['usb']['states'][1]['objects'][1]['label'],'Protective cap')
+        for case in cases.values():
+            self.assertEqual(len(case['states']),8)
+            self.assertTrue(all(o['mask_png'].startswith('data:image/png;base64,') for state in case['states'] for o in state['objects']))
+            self.assertTrue(all(e['kind'] in ('split','merge') for e in case['events']))
 
 if __name__=='__main__':unittest.main()

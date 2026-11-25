@@ -129,3 +129,105 @@ def build_demo():
 def make_mask(index):
     if not 0<=index<8: raise ValueError('frame index must be 0..7')
     return _draw(index)
+
+
+# Additional handcrafted case studies. These are illustrative masks, not inferred from the real footage.
+def _rounded_mask(shape):
+    m=np.zeros((H,W),np.uint8)
+    x,y,w,h=map(int,(shape['x'],shape['y'],shape['w'],shape['h']))
+    kind=shape['kind']
+    if kind in ('battery','usb_connector'):
+        cv2.rectangle(m,(x+min(w,h)//2,y),(x+w-min(w,h)//2,y+h),1,-1)
+        cv2.ellipse(m,(x+min(w,h)//2,y+h//2),(min(w,h)//2,min(w,h)//2),0,0,360,1,-1)
+        cv2.ellipse(m,(x+w-min(w,h)//2,y+h//2),(min(w,h)//2,min(w,h)//2),0,0,360,1,-1)
+    else:
+        r=max(2,min(8,h//5,w//5))
+        cv2.rectangle(m,(x+r,y),(x+w-r,y+h),1,-1)
+        cv2.rectangle(m,(x,y+r),(x+w,y+h-r),1,-1)
+        for cx in (x+r,x+w-r):
+            for cy in (y+r,y+h-r): cv2.circle(m,(cx,cy),r,1,-1)
+    return m
+
+
+def _graph(nodes, edges):
+    return {'nodes':nodes,'edges':edges,'branches':[]}
+
+
+def _case(case_id,title,description,scene,states,graph):
+    out_states=[]; instances_by_state=[]
+    colors={'body':(132,103,223),'cover':(32,166,161),'battery':(226,157,66),'connector':(72,160,204),'cap':(204,116,160),'whole':(132,103,223)}
+    for i,s in enumerate(states):
+        objects=[]; inst=[]
+        for o in s['objects']:
+            mask=_rounded_mask(o['shape'])
+            key=o['id']; label=o['label']
+            inst.append(Instance(key,label,mask.astype(bool)))
+            color=colors.get(o.get('color_role','body'),(132,103,223))
+            objects.append({'id':key,'label':label,'area':int(mask.sum()),'mask_png':_mask_data(mask.astype(bool),color),'shape':o['shape'],'color_role':o.get('color_role','body')})
+        out_states.append({'index':i,'title':s['title'],'description':s['description'],'motion':s.get('motion','track'),'objects':objects})
+        instances_by_state.append(inst)
+    events=[]
+    for i in range(1,len(out_states)):
+        proposed=infer_transition(instances_by_state[i-1],instances_by_state[i],min_coverage=.04)
+        focus=states[i].get('motion')
+        for e in proposed:
+            if focus not in ('split','merge') or e['kind'] != focus: continue
+            e.update(frame=i,time=round(i*.8,2),from_title=out_states[i-1]['title'],to_title=out_states[i]['title'])
+            events.append(e)
+    return {'id':case_id,'title':title,'description':description,'scene':scene,'states':out_states,'events':events,'graph':graph,
+            'summary':{'frames':len(out_states),'events':len(events),'splits':sum(e['kind']=='split' for e in events),'merges':sum(e['kind']=='merge' for e in events)}}
+
+
+def _remote_case():
+    def whole(): return {'id':'T05','label':'TV remote · assembled','color_role':'whole','shape':{'kind':'roundrect','x':65,'y':17,'w':104,'h':116}}
+    def body(): return {'id':'T01','label':'Remote shell','color_role':'body','shape':{'kind':'roundrect','x':65,'y':18,'w':70,'h':105}}
+    def cover(x=130,y=28): return {'id':'T02','label':'Battery cover','color_role':'cover','shape':{'kind':'roundrect','x':x,'y':y,'w':39,'h':70}}
+    def cell(which,x,y): return {'id':which,'label':'AAA battery '+('A' if which=='T03' else 'B'),'color_role':'battery','shape':{'kind':'battery','x':x,'y':y,'w':15,'h':36}}
+    states=[
+      {'title':'Remote assembled','description':'One synthetic silhouette represents the complete remote before opening.','motion':'track','objects':[whole()]},
+      {'title':'Cover slides away','description':'The rear cover separates from the remote shell; track continuity is an illustrative hypothesis.','motion':'split','objects':[body(),cover(130,29),cell('T03',82,48),cell('T04',103,48)]},
+      {'title':'Cells lifted out','description':'The battery bay is visible, with two AAA cells shown as separate components.','motion':'split','objects':[body(),cover(130,27),cell('T03',78,126),cell('T04',101,126)]},
+      {'title':'One cell removed','description':'Cell A is off the remote; Cell B remains in the open compartment.','motion':'track','objects':[body(),cover(130,27),cell('T03',45,130),cell('T04',101,51)]},
+      {'title':'Both cells out','description':'Two loose batteries sit beside the open shell and cover.','motion':'track','objects':[body(),cover(130,27),cell('T03',45,130),cell('T04',72,130)]},
+      {'title':'Cells returned','description':'Both cells are back in the bay; the detached cover remains a separate part.','motion':'track','objects':[body(),cover(130,27),cell('T03',78,48),cell('T04',101,48)]},
+      {'title':'Cover closes','description':'The cover meets the shell. A merge is proposed from overlapping synthetic masks.','motion':'merge','objects':[whole()]},
+      {'title':'Remote reassembled','description':'The sequence ends with one complete remote-control silhouette.','motion':'track','objects':[whole()]},
+    ]
+    nodes=[{'id':'r0','frame':0,'x':24,'y':108,'title':'Remote intact','subtitle':'T01 · one mask','selected':True},
+           {'id':'r1','frame':2,'x':258,'y':54,'title':'Shell + cover + cells','subtitle':'T01–T04 · selected','selected':True},
+           {'id':'ra1','frame':2,'x':258,'y':204,'title':'Keep as one remote','subtitle':'alternative interpretation','selected':False},
+           {'id':'r2','frame':4,'x':512,'y':54,'title':'Cells removed','subtitle':'cover stays separate','selected':True},
+           {'id':'r3','frame':6,'x':760,'y':54,'title':'Remote reassembled','subtitle':'T05 · one mask','selected':True},
+           {'id':'ra2','frame':6,'x':760,'y':204,'title':'Leave parts apart','subtitle':'alternative outcome','selected':False}]
+    edges=[{'from':'r0','to':'r1','label':'split proposal','type':'accepted','frame':1},{'from':'r0','to':'ra1','label':'alternative','type':'alternative','frame':1},{'from':'r1','to':'r2','label':'remove cells','type':'accepted','frame':4},{'from':'r2','to':'r3','label':'merge proposal','type':'accepted','frame':6},{'from':'r2','to':'ra2','label':'alternative','type':'alternative','frame':6}]
+    return _case('remote','TV remote','Battery-cover and AAA-cell sequence · illustrative component masks, not detected parts.','remote',states,_graph(nodes,edges))
+
+
+def _usb_case():
+    def assembled(): return {'id':'U03','label':'USB drive · assembled','color_role':'whole','shape':{'kind':'roundrect','x':48,'y':58,'w':128,'h':43}}
+    def body(): return {'id':'U01','label':'USB body + connector','color_role':'body','shape':{'kind':'roundrect','x':82,'y':58,'w':94,'h':43}}
+    def cap(x=48,y=63): return {'id':'U02','label':'Protective cap','color_role':'cap','shape':{'kind':'roundrect','x':x,'y':y,'w':34,'h':33}}
+    def connector(): return None
+    states=[
+      {'title':'Drive assembled','description':'The synthetic USB drive begins as one connected object mask.','motion':'track','objects':[assembled()]},
+      {'title':'Cap pulls away','description':'The cap becomes a separate component while the drive body and connector remain linked.','motion':'split','objects':[body(),cap(48,61)]},
+      {'title':'Connector exposed','description':'The protective cap is off; the metal connector is visible at the other end.','motion':'track','objects':[body(),cap(48,61)]},
+      {'title':'Cap moved aside','description':'The shell, connector, and cap are shown as three explanatory components.','motion':'track','objects':[body(),cap(32,115)]},
+      {'title':'Cap stays separate','description':'Alternative paths can keep the cap independent or pair it with the drive.','motion':'candidate','objects':[body(),cap(32,115)]},
+      {'title':'Cap approaches','description':'The cap moves back toward the shell; identity is still a proposal.','motion':'candidate','objects':[body(),cap(67,76)]},
+      {'title':'Cap reconnects','description':'The protective cap and body overlap in the generated mask.','motion':'merge','objects':[assembled()]},
+      {'title':'Drive reassembled','description':'The final state is one illustrative USB-drive mask.','motion':'track','objects':[assembled()]},
+    ]
+    nodes=[{'id':'u0','frame':0,'x':24,'y':108,'title':'USB assembled','subtitle':'U01 · one mask','selected':True},
+           {'id':'u1','frame':2,'x':258,'y':54,'title':'Body + cap','subtitle':'U01 + U02','selected':True},
+           {'id':'ua1','frame':2,'x':258,'y':204,'title':'Keep one device','subtitle':'alternative interpretation','selected':False},
+           {'id':'u2','frame':4,'x':512,'y':54,'title':'Cap separate','subtitle':'USB parts visible','selected':True},
+           {'id':'u3','frame':6,'x':760,'y':54,'title':'Drive reassembled','subtitle':'one connected mask','selected':True},
+           {'id':'ua2','frame':6,'x':760,'y':204,'title':'Keep cap apart','subtitle':'alternative outcome','selected':False}]
+    edges=[{'from':'u0','to':'u1','label':'split proposal','type':'accepted','frame':1},{'from':'u0','to':'ua1','label':'alternative','type':'alternative','frame':1},{'from':'u1','to':'u2','label':'cap stays separate','type':'accepted','frame':4},{'from':'u2','to':'u3','label':'merge proposal','type':'accepted','frame':6},{'from':'u2','to':'ua2','label':'alternative','type':'alternative','frame':6}]
+    return _case('usb','USB flash drive','Cap, body, and connector sequence · illustrative component masks, not detected parts.','usb',states,_graph(nodes,edges))
+
+
+def build_catalog():
+    mug=build_demo(); mug.update(id='mug',title='Travel mug',description='Lid split and reassembly · generated synthetic scene.',scene='mug')
+    return {'scenarios':[mug,_remote_case(),_usb_case()]}

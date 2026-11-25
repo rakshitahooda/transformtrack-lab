@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from core import Instance, build_demo, infer_transition, make_mask
+from core import Instance, build_demo, build_catalog, infer_transition, make_mask
 
 class TrackerTests(unittest.TestCase):
     def test_demo_exercises_one_split_and_merge(self):
@@ -8,6 +8,16 @@ class TrackerTests(unittest.TestCase):
         self.assertEqual(d['summary']['splits'],1)
         self.assertEqual(d['summary']['merges'],1)
         self.assertEqual([e['kind'] for e in d['events']],['split','merge'])
+
+    def test_catalog_includes_remote_and_usb_component_cases(self):
+        cases={c['id']:c for c in build_catalog()['scenarios']}
+        self.assertEqual(set(cases),{'mug','remote','usb'})
+        self.assertTrue(any('AAA battery' in o['label'] for state in cases['remote']['states'] for o in state['objects']))
+        self.assertTrue(any(o['label']=='Protective cap' for state in cases['usb']['states'] for o in state['objects']))
+        for key in ('remote','usb'):
+            self.assertEqual(len(cases[key]['states']),8)
+            self.assertTrue(any(e['kind']=='split' for e in cases[key]['events']))
+            self.assertTrue(any(e['kind']=='merge' for e in cases[key]['events']))
 
     def test_split_iou_is_mean_pair_iou(self):
         old=np.zeros((10,10),bool);old[2:8,2:8]=1

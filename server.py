@@ -1,12 +1,12 @@
 from flask import Flask, jsonify, send_from_directory
 from pathlib import Path
-from core import build_demo
+from core import build_catalog
 ROOT=Path(__file__).resolve().parent
 app=Flask(__name__,static_folder=str(ROOT/'static'),static_url_path='/static')
 @app.get('/')
 def home(): return send_from_directory(ROOT,'index.html')
 @app.get('/api/demo')
-def demo(): return jsonify(build_demo())
+def demo(): return jsonify(build_catalog())
 @app.get('/media/pexels-clock-repair.mp4')
 def real_footage(): return send_from_directory(ROOT/'media','pexels-clock-repair.mp4',mimetype='video/mp4',conditional=True)
 @app.get('/media/transformtrack-demo.mp4')
