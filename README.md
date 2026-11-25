@@ -1,51 +1,72 @@
 # TransformTrack Lab
 
-An original local-first interactive prototype for understanding how object identity can change during assembly and disassembly. Follow a synthetic lantern through a split and merge, inspect mask-overlap evidence, and explore its state graph.
+An original interactive learning prototype about object identity during assembly and disassembly. Scrub an overhead synthetic travel-mug sequence, toggle generated mask overlays, inspect pixel-overlap evidence, and follow a branching state graph with selected and alternative paths.
 
-This is a teaching prototype inspired by the research below. It does not reproduce TIPO or VISTA benchmark results. The sequence is generated synthetic geometry, not real footage or robotics performance.
+This project takes conceptual inspiration from the research linked below. It is not a reproduction of TIPO, a real video tracker, a robotics system, or a VISTA benchmark result. Every scene frame is generated geometry.
 
-## Run on Windows
-1. Install Python 3.10+ and extract this folder. Open PowerShell in `transformtrack-lab`.
-2. Create and activate a virtual environment:
+## Windows setup
+
+1. Install Python 3.10 or newer and extract this folder.
+2. Open PowerShell in `transformtrack-lab`.
+3. Create and activate a virtual environment:
    ```powershell
    py -m venv .venv
    .\.venv\Scripts\Activate.ps1
    ```
-   If activation is blocked, use `.venv\Scripts\python.exe` instead of `py` below.
-3. Install dependencies:
+   If PowerShell blocks activation, run `.venv\Scripts\python.exe` instead of `py` in the commands below.
+4. Install the listed dependencies:
    ```powershell
    py -m pip install --upgrade pip
    py -m pip install -r requirements.txt
    ```
-4. Start the server:
+5. Start the local web app:
    ```powershell
    py server.py
    ```
-5. On that same PC, open http://127.0.0.1:8000. Keep PowerShell open; stop with Ctrl+C.
+6. On the same PC, open http://127.0.0.1:8000. Leave the terminal open while using the demo. Press Ctrl+C to stop it.
 
-If `py` is unavailable, replace it with `python`. The local address works only on the computer running the server.
+If `py` is not recognized, use `python`. The local URL is reachable only on the computer running the server.
 
-## Prototype and stack
-Python 3.10+, Flask, OpenCV, NumPy, Pillow (for regenerating the included clip), HTML5 Canvas, vanilla JavaScript and CSS. Flask serves a JSON analysis endpoint. OpenCV extracts connected components from generated instance masks; NumPy computes pixel intersections, per-mask coverage and IoU. A pair is linked when it overlaps at least 8% of either mask. One prior mask overlapping multiple current masks proposes a split; multiple prior masks overlapping one current mask propose a merge. Displayed mean pair IoU is an overlap measure, not a calibrated confidence. The UI shows eight sample states and a linked state graph. No model is trained or downloaded.
+## What to explore
 
-The included original MP4 is a short visual tour of the synthetic sequence. It is not the source creator's video. Watch it at [media/transformtrack-demo.mp4](media/transformtrack-demo.mp4). Regenerate it by running `python tools/make_video.py` to render PNG frames, then `ffmpeg -framerate 24 -i /tmp/tt_frames/frame_%04d.png -t 8 -c:v libx264 -pix_fmt yuv420p media/transformtrack-demo.mp4`.
+- Play or scrub eight synthetic frames. The frame view, event evidence and graph selection stay synchronized.
+- Toggle the generated mask overlay. The mug body and lid have distinct colors and illustrative track IDs.
+- At the split and merge frames, inspect shared-pixel counts and per-pair intersection-over-union (IoU).
+- Click a node in the graph to jump to its frame. The graph shows an example selected path alongside two alternative hypotheses.
 
-## Research pipeline concept and this prototype
-The referenced TIPO work describes a broader tracking loop: per-object tracker masks; component extraction with point sampling and mask decoding; candidate assembly or disassembly state proposals; overlap-based scoring and selection; an MLLM judge for semantic validation and labels; then updates to a state graph and tracker. The diagram in the web demo is an original summary of that flow, not a reproduction of the paper figure.
+The alternatives are explanatory branches, not competing proposals evaluated by a research model. Track IDs are demonstration labels. The merge score is a mask-overlap measure, not semantic confidence.
 
-TransformTrack implements only a small synthetic analogy: it generates binary masks, extracts connected components with OpenCV, proposes split or merge events using an overlap threshold and reports mean pairwise IoU, then builds a finite synthetic state graph. It does not sample prompts, decode masks, run an MLLM, maintain a learned tracker, or implement the TIPO method. Its values are educational examples, not benchmark metrics or confidence estimates.
+## Implementation and technology
+
+Python 3.10+, Flask, OpenCV, NumPy, HTML5 Canvas, SVG, vanilla JavaScript and CSS. Flask serves the generated sequence as JSON. OpenCV extracts connected components from binary masks. NumPy calculates shared pixels, per-mask coverage and IoU. A fixed overlap threshold proposes one-to-many splits and many-to-one merges. The browser draws the synchronized synthetic scene and interactive branching graph.
+
+The included original MP4 is a short visual tour of the generated scene. It is not the research authors' video. Regenerate the clip with `python tools/make_video.py` to render PNG frames, then run:
+
+```bash
+ffmpeg -framerate 24 -i /tmp/tt_frames/frame_%04d.png -t 8 -c:v libx264 -pix_fmt yuv420p media/transformtrack-demo.mp4
+```
+
+## How it differs from the research
+
+The linked paper describes Tracking Instances via Proposals and Overlaps (TIPO): it uses per-object tracker masks, samples components and mask priors, generates and scores candidate states, then applies an MLLM judge for visual validation and semantic labels before updating the state graph and tracker.
+
+This prototype only generates binary synthetic shapes, extracts connected components, proposes split and merge events using simple mask overlap, and displays a hand-authored explanatory graph. It does not sample points, decode masks, use a learned tracker, call an MLLM, or evaluate on VISTA. No performance figures from the paper are claimed for this project.
 
 ## Tests
+
+Run from the project folder:
+
 ```powershell
 py -m unittest discover -s tests -v
 ```
-The tests exercise synthetic mask handling and split/merge proposals, not a real video tracker.
 
-## Limits
-No camera input, learned segmentation model, MLLM judge, physical robot, real-world trial, VISTA evaluation, or generalization claim. This mask-overlap example is a small educational analogue, not the paper's TIPO implementation. The paper's project page describes its own TIPO pipeline; the dataset card currently says project page, paper and code with evaluation are “Coming Soon”. This project does not download or redistribute VISTA data.
+The tests cover generated masks, split and merge overlap calculations, track labels, graph branches, and the Flask API. They do not evaluate real video tracking.
 
-## Attribution
-- LinkedIn source post: https://lnkd.in/p/gJzuxCi6
-- Paper by Davide Gardenal, Mingxuan Liu, Flavio Vella, Quentin Guimard and Elisa Ricci: https://arxiv.org/abs/2611.27398
-- Official research project page: https://davidegardenal.github.io/tipo-tracking/
-- VISTA dataset card (CC BY 4.0): https://huggingface.co/datasets/davidegarde/VISTA
+## References
+
+- [Original LinkedIn post](https://lnkd.in/p/gJzuxCi6)
+- [Research paper](https://arxiv.org/abs/2611.27398)
+- [Official research project page](https://davidegardenal.github.io/tipo-tracking/)
+- [VISTA dataset card](https://huggingface.co/datasets/davidegarde/VISTA)
+
+The prototype does not download or redistribute VISTA data.

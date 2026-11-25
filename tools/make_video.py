@@ -1,87 +1,101 @@
+"""Render an original 8-second TransformTrack Lab visual explainer."""
 from PIL import Image, ImageDraw, ImageFont
-import math, os
-W,H=1280,720
-OUT='/tmp/tt_frames'; os.makedirs(OUT,exist_ok=True)
-font='/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'; bold='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'; mono='/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf'
-def F(size,b=False,m=False): return ImageFont.truetype(mono if m else bold if b else font,size)
-def mix(a,b,t): return tuple(round(a[i]*(1-t)+b[i]*t) for i in range(3))
-def rounded(d,box,r,fill,outline=None,w=1): d.rounded_rectangle(box,r,fill=fill,outline=outline,width=w)
-def lantern(d,x,y,assembled=True,alpha=255):
-    body=(x-74,y-5,x+74,y+150); cap=(x-58,y-67,x+58,y-32); base=(x-84,y+146,x+84,y+164)
-    d.rounded_rectangle(body,18,fill=(111,91,162),outline=(197,183,235),width=3)
-    d.rounded_rectangle((x-29,y-34,x+29,y+18),7,fill=(104,84,151),outline=(197,183,235),width=2)
-    d.rounded_rectangle((x-49,y+40,x-6,y+122),8,fill=(37,34,52),outline=(194,178,238),width=2)
-    d.rounded_rectangle((x+8,y+40,x+51,y+122),8,fill=(37,34,52),outline=(194,178,238),width=2)
-    d.ellipse((x-15,y+61,x+15,y+110),fill=(242,193,124))
-    d.rounded_rectangle(base,7,fill=(191,161,235),outline=(233,222,251),width=2)
-    d.rounded_rectangle(cap,12,fill=(111,194,166),outline=(208,248,230),width=3)
-    d.rounded_rectangle((x-43,y-39,x+43,y-24),5,fill=(96,169,143),outline=(208,248,230),width=2)
-    if not assembled:
-        # redraw cap floating above; opening remains visibly distinct
-        d.line((x,y-21,x,y-2),fill=(243,190,121),width=3)
-def draw(t):
-    img=Image.new('RGB',(W,H),(17,16,25)); d=ImageDraw.Draw(img)
-    # soft violet luminous panel background
-    d.rectangle((0,0,W,H),fill=(19,18,29))
-    for x in range(0,W,48): d.line((x,0,x,H),fill=(29,27,41),width=1)
-    for y in range(0,H,48): d.line((0,y,W,y),fill=(29,27,41),width=1)
-    rounded(d,(42,30,1238,690),24,(22,21,33),(68,62,91),1)
-    d.text((76,57),'TRANSFORMTRACK',font=F(17,True,m=True),fill=(225,218,245));d.text((333,57),'LAB 01',font=F(13,True,m=True),fill=(166,145,207))
-    d.text((970,60),'SYNTHETIC SEQUENCE  /  OFFLINE DEMO',font=F(12,m=True),fill=(159,149,177))
-    d.line((76,92,1204,92),fill=(60,54,76),width=1)
-    d.text((78,118),'WHEN ONE OBJECT',font=F(17,m=True),fill=(183,173,201))
-    d.text((78,147),'becomes',font=F(35),fill=(241,236,249));d.text((251,147),'many.',font=F(35,True),fill=(190,163,243))
-    d.text((78,202),'Follow identity through assembly and disassembly.',font=F(15),fill=(173,165,190))
-    # scene panel
-    rounded(d,(76,252,818,588),17,(28,27,41),(64,58,80),1)
-    d.text((98,270),'SEQUENCE 01',font=F(11,True,m=True),fill=(166,154,190));d.text((98,291),'Lantern study',font=F(20,True),fill=(237,231,247))
-    frame=min(7,int(t*1.05)); split=3<=frame<=5
-    progress=(t%1.0)
-    x=426+int(13*math.sin(t*2.3)); y=414
+import os
+
+W, H = 1280, 720
+OUT = '/tmp/tt_frames'
+os.makedirs(OUT, exist_ok=True)
+FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
+BOLD = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+MONO = '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf'
+def f(size, bold=False, mono=False): return ImageFont.truetype(MONO if mono else BOLD if bold else FONT, size)
+def rr(d, box, r, fill, outline=None, width=1): d.rounded_rectangle(box, r, fill=fill, outline=outline, width=width)
+def line(d, pts, fill, width=2): d.line(pts, fill=fill, width=width, joint='curve')
+
+# Original vector artwork: a synthetic mug, lid, colored component masks, and a hand-built graph.
+def mug_scene(d, frame, mask=True, t=0):
+    rr(d, (54, 138, 755, 514), 20, (238, 226, 205), (219, 207, 190), 2)
+    # warm tabletop grain, generated rather than copied from the reference
+    for y in range(158, 510, 28): line(d, [(70,y),(738,y)], (229,216,195), 1)
+    cx, cy = 402, 324
+    split = 3 <= frame <= 5
+    # mug body and handle
+    rr(d, (cx-92,cy-16,cx+82,cy+154), 31, (82,74,93), (53,46,66), 4)
+    d.ellipse((cx+53,cy+35,cx+149,cy+132), outline=(77,67,87), width=18)
+    d.ellipse((cx+68,cy+48,cx+134,cy+118), fill=(238,226,205))
+    # subtle mug highlight
+    rr(d,(cx-74,cy+2,cx-54,cy+133),9,(126,111,142))
+    # lid separates but remains visibly connected to its old pixels across adjacent frames
+    lid_y = cy-62 if split else cy-16
+    rr(d,(cx-103,lid_y,cx+95,lid_y+25),8,(114,181,155),(60,133,109),3)
+    rr(d,(cx-76,lid_y-21,cx+66,lid_y+2),7,(137,203,176),(60,133,109),2)
     if split:
-        # floated part on split / separate states
-        lantern(d,x,y,False)
-    else:
-        lantern(d,x,y,True)
-    # overlay rectangle and linkage
-    d.rounded_rectangle((x-120,326,x+120,584),18,outline=(167,146,218),width=2)
-    if split: d.line((x,y-12,x,y+10),fill=(242,190,126),width=2)
-    d.text((96,548),'MASK OVERLAY',font=F(10,m=True),fill=(155,147,172))
-    # timeline
-    d.text((96,614),'TRANSFORMATION TIMELINE',font=F(10,True,m=True),fill=(161,151,178))
-    d.line((99,641,783,641),fill=(91,78,117),width=3)
+        rr(d,(cx-13,lid_y-34,cx+13,lid_y-19),5,(88,160,132))
+    if mask:
+        # translucent component-like outlines with labels; these are generated shapes, not image masks.
+        if split:
+            d.rounded_rectangle((cx-115,lid_y-38,cx+108,lid_y+37),12,outline=(32,150,132),width=4)
+            d.rounded_rectangle((cx-101,cy-28,cx+162,cy+171),35,outline=(217,117,63),width=4)
+            rr(d,(cx-100,lid_y-51,cx-14,lid_y-29),8,(28,115,99)); d.text((cx-93,lid_y-48),'T02 LID',font=f(10,True,True),fill=(255,255,255))
+            rr(d,(cx-83,cy+178,cx+5,cy+202),8,(154,77,42)); d.text((cx-76,cy+181),'T01 BODY',font=f(10,True,True),fill=(255,255,255))
+        else:
+            d.rounded_rectangle((cx-108,cy-31,cx+163,cy+172),38,outline=(115,82,191),width=4)
+            rr(d,(cx-101,cy+178,cx-17,cy+202),8,(88,60,151)); d.text((cx-95,cy+181),'T01 MUG',font=f(10,True,True),fill=(255,255,255))
+    # small moving playhead marker
+    d.ellipse((cx+205,cy-118,cx+213,cy-110),fill=(107,78,167))
+
+STATES=['One connected mask','The lid starts to lift','Two pieces: T01 + T02','Two tracks stay stable','The lid moves back','A merge is proposed','One connected mask again','New whole track: T03']
+def draw(t):
+    im=Image.new('RGB',(W,H),(247,246,250)); d=ImageDraw.Draw(im)
+    d.rectangle((0,0,W,82),fill=(35,28,52))
+    d.text((55,27),'TRANSFORMTRACK LAB',font=f(20,True,True),fill=(248,245,255))
+    d.text((906,31),'ORIGINAL SYNTHETIC DEMO  /  NOT CAMERA FOOTAGE',font=f(11,True,True),fill=(201,185,231))
+    d.text((57,103),'One mug. Two parts. One story.',font=f(29,True),fill=(42,33,61))
+    d.text((59,143),'Watch object identity change as a lid is removed, then reattached.',font=f(15),fill=(101,92,113))
+    frame=min(7,int(t)); split=3<=frame<=5
+    mug_scene(d,frame,True,t)
+    # timeline and timecode
+    d.text((73,461),'SYNTHETIC FRAME SEQUENCE',font=f(10,True,True),fill=(87,76,103))
+    line(d,[(80,482),(728,482)],(178,164,197),4)
     for i in range(8):
-        xx=100+i*97.5; kind='split' if i==3 else 'merge' if i==6 else ''
-        col=(243,190,126) if kind else (165,145,220)
-        d.ellipse((xx-6,635,xx+6,647),fill=col)
-        if kind: d.text((xx-20,657),kind.upper(),font=F(8,True,m=True),fill=col)
-    # right details
-    rounded(d,(852,252,1204,409),17,(28,27,41),(64,58,80),1)
-    d.text((877,274),'CURRENT STATE',font=F(10,True,m=True),fill=(166,154,190))
-    labels=['Assembled','Stable track','Cap starts to move','Split proposal','Parts tracked','Reassembly proposal','Merged state','Identity updated']
-    d.text((877,300),labels[frame],font=F(19,True),fill=(236,231,246))
-    d.text((877,343),'OBJECT INSTANCES',font=F(9,True,m=True),fill=(144,134,161))
-    d.text((877,365),'removable cap  /  lantern body' if split else 'one connected lantern mask',font=F(11,m=True),fill=(204,196,220))
-    rounded(d,(852,428,1204,588),17,(28,27,41),(64,58,80),1)
-    d.text((877,449),'TRANSFORMATION LOG',font=F(10,True,m=True),fill=(166,154,190))
-    d.text((877,477),'1   SPLIT PROPOSAL',font=F(12,True,m=True),fill=(243,190,126))
-    d.text((897,500),'one prior mask → two components',font=F(10),fill=(199,190,212))
-    d.text((877,531),'2   MERGE PROPOSAL',font=F(12,True,m=True),fill=(139,216,192))
-    d.text((897,554),'two tracked parts → one mask',font=F(10),fill=(199,190,212))
-    # state graph and footer
-    rounded(d,(76,608,1204,665),12,(26,25,38),(64,58,80),1)
-    d.text((96,623),'STATE GRAPH',font=F(9,True,m=True),fill=(164,154,182))
-    gx=525; gy=635
-    for i in range(7):
-        xx=gx+i*77; d.line((xx,gy,xx+77,gy),fill=(86,78,104),width=2)
-    for i in range(8):
-        xx=gx+i*77; c=(243,190,126) if i==3 else (139,216,192) if i==6 else (172,152,228)
-        d.ellipse((xx-5,gy-5,xx+5,gy+5),fill=c)
-    d.text((76,673),'Synthetic geometry · Python · OpenCV · NumPy · Flask · Canvas',font=F(10,m=True),fill=(141,133,157))
-    d.text((1011,673),'NOT REAL-WORLD PERFORMANCE',font=F(9,True,m=True),fill=(177,151,221))
-    # small animated scan-line along timeline to make motion purposeful
-    scan=100+int((t%7.5)/7.5*680); d.line((scan,631,scan,651),fill=(232,222,255),width=2)
-    return img
-for frame in range(8*24):
-    t=frame/24
-    draw(t).save(f'{OUT}/frame_{frame:04d}.png',quality=90)
+        x=81+i*(647/7); color=(35,143,119) if i in (3,6) else (107,78,167)
+        d.ellipse((x-7,475,x+7,489),fill=color)
+        if i in (3,6): d.text((x-20,494),'SPLIT' if i==3 else 'MERGE',font=f(8,True,True),fill=color)
+    playx=80+(647*(t%8)/7)
+    d.ellipse((playx-8,473,playx+8,489),outline=(255,255,255),width=3)
+    # right state info panels
+    rr(d,(779,138,1225,348),18,(255,255,255),(228,223,235),1)
+    d.text((806,161),'FRAME STATE',font=f(10,True,True),fill=(112,98,133))
+    d.text((806,190),STATES[frame],font=f(19,True),fill=(48,37,69))
+    d.text((806,240),'TRACK IDS',font=f(9,True,True),fill=(133,123,146))
+    d.text((806,261),'T01 mug body    T02 removable lid' if split else ('T03 reassembled mug' if frame==7 else 'T01 travel mug'),font=f(12,True),fill=(63,53,82))
+    d.text((806,301),'Overlap proposes a change; it does not prove meaning.',font=f(11),fill=(106,97,116))
+    # evidence card
+    rr(d,(779,365,1225,514),18,(255,255,255),(228,223,235),1)
+    d.text((806,386),'TRANSITION EVIDENCE',font=f(10,True,True),fill=(112,98,133))
+    d.text((806,413),'Split' if frame==3 else 'Merge' if frame==6 else 'No transition proposed',font=f(15,True),fill=(48,37,69))
+    d.text((806,444),'Compare shared pixels and IoU across adjacent masks.',font=f(11),fill=(106,97,116))
+    d.text((806,476),'Generated geometry · deterministic · educational',font=f(10,True,True),fill=(125,112,145))
+    # readable branching graph: selected route plus rejected alternatives
+    rr(d,(54,546,1225,681),18,(255,255,255),(228,223,235),1)
+    d.text((77,562),'STATE GRAPH',font=f(10,True,True),fill=(112,98,133))
+    # baseline and two branch levels
+    y=610; xs=[280,450,620,790,960]
+    line(d,[(xs[0],y),(xs[1],y),(xs[2],y),(xs[3],y),(xs[4],y)],(107,78,167),4)
+    line(d,[(xs[1],y),(xs[1],653),(xs[2],653)],(188,177,204),2)
+    line(d,[(xs[3],y),(xs[3],653),(xs[4],653)],(188,177,204),2)
+    d.ellipse((xs[2]-7,646,xs[2]+7,660),fill=(255,255,255),outline=(151,139,169),width=2)
+    d.ellipse((xs[4]-7,646,xs[4]+7,660),fill=(255,255,255),outline=(151,139,169),width=2)
+    labels=[('WHOLE','T01'),('SPLIT','T01 + T02'),('PARTS','two masks'),('MERGE','T03'),('WHOLE','T03')]
+    for j,(lab,sub) in enumerate(labels):
+        x=xs[j]
+        d.ellipse((x-10,y-10,x+10,y+10),fill=(107,78,167) if j not in (1,3) else (35,143,119))
+        d.text((x-31,575),lab,font=f(9,True,True),fill=(74,62,94)); d.text((x-42,629),sub,font=f(8,True,True),fill=(118,108,132))
+    d.text((564,666),'KEEP ONE MUG · ALT' ,font=f(8,True,True),fill=(139,129,150))
+    d.text((904,666),'KEEP PARTS · ALT' ,font=f(8,True,True),fill=(139,129,150))
+    d.text((58,690),'Python · Flask · OpenCV · NumPy · JavaScript     Synthetic prototype, not a TIPO reproduction.',font=f(10,True,True),fill=(94,84,111))
+    d.text((1090,690),f'{t:04.1f}s',font=f(10,True,True),fill=(94,84,111))
+    return im
+
+for n in range(8*24):
+    draw(n/24).save(f'{OUT}/frame_{n:04d}.png')

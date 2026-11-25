@@ -2,13 +2,13 @@
 
 Title: TransformTrack Lab: Synthetic Assembly and Disassembly Tracker
 
-Description: Built an interactive computer-vision learning prototype for tracking object identity through assembly and disassembly. A Flask API generates a synthetic lantern sequence; OpenCV extracts connected components, and NumPy scores mask intersections, per-mask coverage, and pairwise IoU to propose split and merge events. A responsive Canvas interface connects the frame timeline, event evidence, and state graph. The educational diagram maps six stages from tracker masks and part proposals through overlap scoring and state-graph updates, and clearly marks the MLLM judge as absent from this prototype. Includes a self-authored demo clip and tests.
+Description: Built an interactive computer-vision learning prototype that follows a synthetic travel mug as its lid separates and is reattached. A Flask API serves an eight-frame generated sequence. OpenCV finds connected components in binary masks, while NumPy measures shared pixels, per-mask coverage, and pairwise IoU to propose split and merge transitions. The browser ties a generated, video-like scene to its timeline, colored component labels, measured transition evidence, and an explorable branching state graph with selected and alternative paths. Includes an original generated demo clip and automated tests.
 
-Tech stack: Python, Flask, OpenCV, NumPy, JavaScript, HTML5 Canvas, CSS
+Tech stack: Python, Flask, OpenCV, NumPy, HTML, CSS, JavaScript, HTML5 Canvas, SVG
 
-Skills: Computer Vision, OpenCV, Python, NumPy, Flask, JavaScript
+Skills: Computer Vision, Python, OpenCV, NumPy, Flask, JavaScript, Data Visualization
 
-Scope: Synthetic geometry only. No point sampling, mask decoder, MLLM, trained tracker, or real video is implemented. This is an original educational prototype inspired by transformation-tracking research, not a reproduction of TIPO, a trained model, real footage, VISTA evaluation, or robotics-performance claim.
+Scope: The sequence uses deterministic synthetic geometry, not camera video. Track labels are explanatory IDs. Branch alternatives are hand-authored illustrations, not model-ranked hypotheses. This is an original educational prototype inspired by transformation-tracking research, not an implementation or reproduction of TIPO, a trained tracker, VISTA evaluation, or a robotics-performance claim. It does not implement point sampling, mask decoding, learned segmentation, or an MLLM judge.
 
 References:
 - Source LinkedIn post: https://lnkd.in/p/gJzuxCi6
