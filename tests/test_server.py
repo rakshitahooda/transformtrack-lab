@@ -8,20 +8,37 @@ class ApiTests(unittest.TestCase):
     def test_health(self):
         r=self.client.get('/health')
         self.assertEqual(r.status_code,200)
-        self.assertEqual(r.json,{'status':'ok','mode':'synthetic'})
+        self.assertEqual(r.json,{'status':'ok','mode':'synthetic-plus-real-footage'})
 
     def test_home_and_assets(self):
         home=self.client.get('/')
         self.assertEqual(home.status_code,200)
         self.assertIn(b'A branching state graph',home.data)
         self.assertIn(b'ILLUSTRATIVE',home.data)
-        self.assertIn(b'Not a reproduction of TIPO',home.data)
+        self.assertIn(b'A watch repair, captured on camera',home.data)
+        self.assertIn(b'No masks, tracks, or measurements are computed on this footage',home.data)
         js=self.client.get('/static/app.js')
         self.assertEqual(js.status_code,200)
         self.assertIn(b'buildGraph',js.data)
         css=self.client.get('/static/style.css')
         self.assertEqual(css.status_code,200)
         js.close();css.close();home.close()
+
+    def test_real_footage_source_and_range(self):
+        info=self.client.get('/api/real-footage').get_json()
+        self.assertEqual(info['creator'],'Tima Miroshnichenko')
+        self.assertTrue(info['notes_are_manual'])
+        self.assertFalse(info['computer_vision_runs_on_clip'])
+        r=self.client.get('/media/pexels-clock-repair.mp4',headers={'Range':'bytes=0-63'})
+        self.assertEqual(r.status_code,206)
+        self.assertEqual(r.content_type,'video/mp4')
+        self.assertEqual(len(r.data),64)
+        r.close()
+        demo=self.client.get('/media/transformtrack-demo.mp4',headers={'Range':'bytes=0-63'})
+        self.assertEqual(demo.status_code,206)
+        self.assertEqual(demo.content_type,'video/mp4')
+        self.assertEqual(len(demo.data),64)
+        demo.close()
 
     def test_api_graph_and_explanation(self):
         d=self.client.get('/api/demo').get_json()

@@ -1,8 +1,8 @@
 # TransformTrack Lab
 
-An original interactive learning prototype about object identity during assembly and disassembly. Scrub an overhead synthetic travel-mug sequence, toggle generated mask overlays, inspect pixel-overlap evidence, and follow a branching state graph with selected and alternative paths.
+An original interactive learning prototype about object identity during physical change. It now opens with real footage of hands repairing a watch, followed by a separate synthetic travel-mug study with generated masks, pixel-overlap evidence, and an explorable branching state graph.
 
-This project takes conceptual inspiration from the research linked below. It is not a reproduction of TIPO, a real video tracker, a robotics system, or a VISTA benchmark result. Every scene frame is generated geometry.
+The watch clip is real, but this app does not run computer vision on it. The chapter notes are manually written. All measured mask metrics, track IDs, split/merge proposals, and graph states belong only to the synthetic mug sequence. This is not a reproduction of TIPO, a real-world tracker, a robotics system, or a VISTA benchmark result.
 
 ## Windows setup
 
@@ -29,6 +29,8 @@ If `py` is not recognized, use `python`. The local URL is reachable only on the 
 
 ## What to explore
 
+- Open the [captioned 14-second demo video](media/transformtrack-demo.mp4).
+- Play the real-world clip and use its manual chapter buttons to jump between moments.
 - Play or scrub eight synthetic frames. The frame view, event evidence and graph selection stay synchronized.
 - Toggle the generated mask overlay. The mug body and lid have distinct colors and illustrative track IDs.
 - At the split and merge frames, inspect shared-pixel counts and per-pair intersection-over-union (IoU).
@@ -38,13 +40,9 @@ The alternatives are explanatory branches, not competing proposals evaluated by 
 
 ## Implementation and technology
 
-Python 3.10+, Flask, OpenCV, NumPy, HTML5 Canvas, SVG, vanilla JavaScript and CSS. Flask serves the generated sequence as JSON. OpenCV extracts connected components from binary masks. NumPy calculates shared pixels, per-mask coverage and IoU. A fixed overlap threshold proposes one-to-many splits and many-to-one merges. The browser draws the synchronized synthetic scene and interactive branching graph.
+Python 3.10+, Flask, OpenCV, NumPy, HTML5 video, HTML, CSS, vanilla JavaScript, HTML5 Canvas, and SVG. Flask serves the real MP4 and generated scene data. OpenCV extracts connected components from the synthetic binary masks. NumPy measures shared pixels, per-mask coverage, and intersection-over-union (IoU). A fixed overlap threshold proposes splits and merges only for that generated sequence. The browser draws the synchronized synthetic scene and interactive graph; JavaScript provides playback and chapter navigation for the real clip.
 
-The included original MP4 is a short visual tour of the generated scene. It is not the research authors' video. Regenerate the clip with `python tools/make_video.py` to render PNG frames, then run:
-
-```bash
-ffmpeg -framerate 24 -i /tmp/tt_frames/frame_%04d.png -t 8 -c:v libx264 -pix_fmt yuv420p media/transformtrack-demo.mp4
-```
+The included `media/transformtrack-demo.mp4` is an edited, captioned walkthrough of the real watch-repair footage. Regenerate it from the included source clip with `python tools/make_video.py`; the script requires `ffmpeg` on PATH.
 
 ## How it differs from the research
 
@@ -62,6 +60,12 @@ py -m unittest discover -s tests -v
 
 The tests cover generated masks, split and merge overlap calculations, track labels, graph branches, and the Flask API. They do not evaluate real video tracking.
 
+## Real-world clip source and license
+
+The app uses the 14-second watch-repair clip [Person Repairing a Clock by Tima Miroshnichenko](https://www.pexels.com/video/person-repairing-a-clock-8322341/). The source listing describes a watch-repair process with hands and tools. The clip was downloaded from Pexels and is included as one component of this interactive app. Pexels’ [license](https://www.pexels.com/license/) says its videos are free to use and modify; attribution is appreciated but not required. The edited demo video credits the creator. This project does not redistribute the clip as a standalone stock asset.
+
+The real-video chapter labels are manual observations, not tracking results. No segmentation, object detection, track IDs, overlap scores, or graph inference are run on the Pexels footage. The synthetic sequence below remains a separate, deterministic teaching example.
+
 ## References
 
 - [Original LinkedIn post](https://lnkd.in/p/gJzuxCi6)
@@ -70,3 +74,5 @@ The tests cover generated masks, split and merge overlap calculations, track lab
 - [VISTA dataset card](https://huggingface.co/datasets/davidegarde/VISTA)
 
 The prototype does not download or redistribute VISTA data.
+
+The repository’s `LICENSE` covers project code. The included Pexels stock footage is not relicensed under MIT; see [`MEDIA_LICENSES.md`](MEDIA_LICENSES.md) for its separate terms and attribution.
